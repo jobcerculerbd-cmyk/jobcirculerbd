@@ -7,8 +7,7 @@
 // GOOGLE APPS SCRIPT API
 // ===============================
 
-const API_URL =
-  "https://script.google.com/macros/s/AKfycbwqQo7pgDmhYIvUBHlOOD-eGvAd-Vbix-sPkCBuLNV1cDpRr6r29iUpkaFVAzhdJgkb/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwqQo7pgDmhYIvUBHlOOD-eGvAd-Vbix-sPkCBuLNV1cDpRr6r29iUpkaFVAzhdJgkb/exec?api=json";
 
 
 // ===============================
