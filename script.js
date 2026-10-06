@@ -1,119 +1,289 @@
 /* =========================================
    JOB CIRCULER BD
-   API + SEARCH + FILTER + JOB CARDS
+   OPTIMIZED JOB PORTAL SCRIPT
+
+   Features:
+   - Instant Local Cache
+   - Background API Refresh
+   - Search
+   - Category Filter
+   - Location Filter
+   - Duplicate Protection
+   - Job Cards
+   - Auto Refresh
+   - Offline Cache Support
 ========================================= */
 
-// ===============================
+
+// =====================================================
 // GOOGLE APPS SCRIPT API
-// ===============================
+// =====================================================
 
-const API_URL = "https://script.google.com/macros/s/AKfycbwqQo7pgDmhYIvUBHlOOD-eGvAd-Vbix-sPkCBuLNV1cDpRr6r29iUpkaFVAzhdJgkb/exec?api=json";
+const API_URL =
+  "https://script.google.com/macros/s/AKfycbwqQo7pgDmhYIvUBHlOOD-eGvAd-Vbix-sPkCBuLNV1cDpRr6r29iUpkaFVAzhdJgkb/exec?api=json";
 
 
-// ===============================
+// =====================================================
+// CACHE SETTINGS
+// =====================================================
+
+const CACHE_KEY =
+  "job_circuler_bd_jobs_cache_v1";
+
+const CACHE_TIME_KEY =
+  "job_circuler_bd_jobs_cache_time_v1";
+
+// Cache lifetime: 30 minutes
+const CACHE_MAX_AGE =
+  30 * 60 * 1000;
+
+
+// =====================================================
 // GLOBAL DATA
-// ===============================
+// =====================================================
 
 let allJobs = [];
+
 let filteredJobs = [];
 
 
-// ===============================
+// =====================================================
 // DOM ELEMENTS
-// ===============================
+// =====================================================
 
 const jobsContainer =
-  document.getElementById("jobsContainer");
+  document.getElementById(
+    "jobsContainer"
+  );
 
 const loading =
-  document.getElementById("loading");
+  document.getElementById(
+    "loading"
+  );
 
 const errorMessage =
-  document.getElementById("errorMessage");
+  document.getElementById(
+    "errorMessage"
+  );
 
 const errorText =
-  document.getElementById("errorText");
+  document.getElementById(
+    "errorText"
+  );
 
 const noJobs =
-  document.getElementById("noJobs");
+  document.getElementById(
+    "noJobs"
+  );
 
 const searchInput =
-  document.getElementById("searchInput");
+  document.getElementById(
+    "searchInput"
+  );
 
 const searchBtn =
-  document.getElementById("searchBtn");
+  document.getElementById(
+    "searchBtn"
+  );
 
 const categoryFilter =
-  document.getElementById("categoryFilter");
+  document.getElementById(
+    "categoryFilter"
+  );
 
 const locationFilter =
-  document.getElementById("locationFilter");
+  document.getElementById(
+    "locationFilter"
+  );
 
 const clearFilters =
-  document.getElementById("clearFilters");
+  document.getElementById(
+    "clearFilters"
+  );
 
 const retryBtn =
-  document.getElementById("retryBtn");
+  document.getElementById(
+    "retryBtn"
+  );
 
 const visibleJobCount =
-  document.getElementById("visibleJobCount");
+  document.getElementById(
+    "visibleJobCount"
+  );
 
 const totalJobs =
-  document.getElementById("totalJobs");
+  document.getElementById(
+    "totalJobs"
+  );
 
 const totalCompanies =
-  document.getElementById("totalCompanies");
+  document.getElementById(
+    "totalCompanies"
+  );
 
 const totalCategories =
-  document.getElementById("totalCategories");
+  document.getElementById(
+    "totalCategories"
+  );
 
 const lastUpdated =
-  document.getElementById("lastUpdated");
+  document.getElementById(
+    "lastUpdated"
+  );
 
 const categoriesContainer =
-  document.getElementById("categoriesContainer");
+  document.getElementById(
+    "categoriesContainer"
+  );
 
 const companiesContainer =
-  document.getElementById("companiesContainer");
+  document.getElementById(
+    "companiesContainer"
+  );
 
 const currentYear =
-  document.getElementById("currentYear");
+  document.getElementById(
+    "currentYear"
+  );
 
 
-// ===============================
+// =====================================================
 // INITIALIZATION
-// ===============================
+// =====================================================
 
 document.addEventListener(
   "DOMContentLoaded",
   () => {
 
     if (currentYear) {
+
       currentYear.textContent =
         new Date().getFullYear();
+
     }
 
-    loadJobs();
+    /*
+       IMPORTANT:
+
+       First try cache.
+
+       If cache exists:
+       Show jobs immediately.
+
+       Then refresh API
+       silently in background.
+    */
+
+    const cachedJobs =
+      loadJobsFromCache();
+
+    if (
+      cachedJobs &&
+      cachedJobs.length
+    ) {
+
+      console.log(
+        "Showing cached jobs instantly."
+      );
+
+      setJobs(
+        cachedJobs,
+        false
+      );
+
+      hideLoading();
+
+      /*
+         Background API refresh
+      */
+
+      refreshJobsInBackground();
+
+    } else {
+
+      /*
+         First visitor / no cache
+
+         API must load.
+      */
+
+      loadJobsFromAPI(
+        true
+      );
+
+    }
 
   }
 );
 
 
-// ===============================
-// LOAD JOBS FROM API
-// ===============================
+// =====================================================
+// MAIN JOB LOADER
+// =====================================================
 
 async function loadJobs() {
 
-  showLoading();
+  /*
+     If jobs already exist,
+     DON'T show loading screen.
+
+     Instead update silently.
+  */
+
+  if (
+    allJobs &&
+    allJobs.length
+  ) {
+
+    await refreshJobsInBackground();
+
+    return;
+
+  }
+
+
+  loadJobsFromAPI(
+    true
+  );
+
+}
+
+
+// =====================================================
+// API LOAD
+// =====================================================
+
+async function loadJobsFromAPI(
+  showLoader = false
+) {
+
+  if (
+    showLoader &&
+    (!allJobs || !allJobs.length)
+  ) {
+
+    showLoading();
+
+  }
+
 
   try {
 
     const response =
-      await fetch(API_URL, {
-        method: "GET",
-        cache: "no-store"
-      });
+      await fetch(
+        API_URL +
+        (
+          API_URL.includes("?")
+            ? "&"
+            : "?"
+        ) +
+        "_t=" +
+        Date.now(),
+        {
+          method: "GET",
+          cache: "no-store"
+        }
+      );
 
 
     if (!response.ok) {
@@ -135,17 +305,25 @@ async function loadJobs() {
     );
 
 
-    if (!data || data.success !== true) {
+    if (
+      !data ||
+      data.success !== true
+    ) {
 
       throw new Error(
         data?.message ||
+        data?.error ||
         "API returned an unsuccessful response."
       );
 
     }
 
 
-    if (!Array.isArray(data.jobs)) {
+    if (
+      !Array.isArray(
+        data.jobs
+      )
+    ) {
 
       throw new Error(
         "Jobs data was not found in API response."
@@ -154,26 +332,41 @@ async function loadJobs() {
     }
 
 
-    // Normalize + remove duplicates
-    allJobs =
-      normalizeJobs(data.jobs);
+    /*
+       Normalize data
+    */
+
+    const newJobs =
+      normalizeJobs(
+        data.jobs
+      );
 
 
-    filteredJobs =
-      [...allJobs];
+    /*
+       Save to browser cache
+    */
+
+    saveJobsToCache(
+      newJobs
+    );
 
 
-    updateStatistics();
+    /*
+       Update website
+    */
 
-    buildFilters();
+    setJobs(
+      newJobs,
+      true
+    );
 
-    buildCategories();
-
-    buildCompanies();
-
-    renderJobs(filteredJobs);
 
     hideLoading();
+
+
+    console.log(
+      "Jobs updated successfully."
+    );
 
 
   } catch (error) {
@@ -182,6 +375,36 @@ async function loadJobs() {
       "Job API Error:",
       error
     );
+
+
+    /*
+       IMPORTANT:
+
+       If cached jobs already exist,
+       DO NOT show error screen.
+
+       Keep showing cached jobs.
+    */
+
+    if (
+      allJobs &&
+      allJobs.length
+    ) {
+
+      console.log(
+        "API failed. Cached jobs remain visible."
+      );
+
+      hideLoading();
+
+      return;
+
+    }
+
+
+    /*
+       No cache + API failed
+    */
 
     showError(
       "Unable to load job data. Please check the API or try again."
@@ -192,20 +415,347 @@ async function loadJobs() {
 }
 
 
-// ===============================
-// NORMALIZE JOB DATA
-// ===============================
+// =====================================================
+// BACKGROUND REFRESH
+// =====================================================
 
-function normalizeJobs(jobs) {
+async function refreshJobsInBackground() {
+
+  try {
+
+    const response =
+      await fetch(
+        API_URL +
+        (
+          API_URL.includes("?")
+            ? "&"
+            : "?"
+        ) +
+        "_t=" +
+        Date.now(),
+        {
+          method: "GET",
+          cache: "no-store"
+        }
+      );
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        `HTTP Error: ${response.status}`
+      );
+
+    }
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !data ||
+      data.success !== true ||
+      !Array.isArray(
+        data.jobs
+      )
+    ) {
+
+      throw new Error(
+        "Invalid API response."
+      );
+
+    }
+
+
+    const newJobs =
+      normalizeJobs(
+        data.jobs
+      );
+
+
+    /*
+       Check whether
+       jobs actually changed.
+    */
+
+    const oldData =
+      JSON.stringify(
+        allJobs
+      );
+
+    const newData =
+      JSON.stringify(
+        newJobs
+      );
+
+
+    if (
+      oldData !== newData
+    ) {
+
+      console.log(
+        "New job data detected. Updating website."
+      );
+
+
+      saveJobsToCache(
+        newJobs
+      );
+
+
+      setJobs(
+        newJobs,
+        true
+      );
+
+    } else {
+
+      console.log(
+        "No job changes detected."
+      );
+
+    }
+
+
+    hideLoading();
+
+
+  } catch (error) {
+
+    console.warn(
+      "Background refresh failed:",
+      error
+    );
+
+    /*
+       Keep existing cached jobs.
+    */
+
+    hideLoading();
+
+  }
+
+}
+
+
+// =====================================================
+// SET JOB DATA
+// =====================================================
+
+function setJobs(
+  jobs,
+  updateTime = true
+) {
+
+  allJobs =
+    normalizeJobs(
+      jobs
+    );
+
+
+  filteredJobs =
+    [
+      ...allJobs
+    ];
+
+
+  updateStatistics();
+
+
+  buildFilters();
+
+
+  buildCategories();
+
+
+  buildCompanies();
+
+
+  renderJobs(
+    filteredJobs
+  );
+
+
+  if (
+    updateTime
+  ) {
+
+    updateLastUpdated();
+
+  }
+
+}
+
+
+// =====================================================
+// CACHE SAVE
+// =====================================================
+
+function saveJobsToCache(
+  jobs
+) {
+
+  try {
+
+    localStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify(
+        jobs
+      )
+    );
+
+
+    localStorage.setItem(
+      CACHE_TIME_KEY,
+      String(
+        Date.now()
+      )
+    );
+
+
+    console.log(
+      "Jobs saved to local cache."
+    );
+
+
+  } catch (error) {
+
+    console.warn(
+      "Could not save jobs to cache:",
+      error
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// CACHE LOAD
+// =====================================================
+
+function loadJobsFromCache() {
+
+  try {
+
+    const raw =
+      localStorage.getItem(
+        CACHE_KEY
+      );
+
+
+    if (!raw) {
+
+      return null;
+
+    }
+
+
+    const cachedJobs =
+      JSON.parse(
+        raw
+      );
+
+
+    if (
+      !Array.isArray(
+        cachedJobs
+      )
+    ) {
+
+      return null;
+
+    }
+
+
+    /*
+       We intentionally allow
+       slightly old cache.
+
+       Even if cache is old,
+       show it instantly.
+
+       API will update it
+       in background.
+    */
+
+    return normalizeJobs(
+      cachedJobs
+    );
+
+
+  } catch (error) {
+
+    console.warn(
+      "Cache read error:",
+      error
+    );
+
+
+    return null;
+
+  }
+
+}
+
+
+// =====================================================
+// CACHE CLEAR
+// =====================================================
+
+function clearJobCache() {
+
+  try {
+
+    localStorage.removeItem(
+      CACHE_KEY
+    );
+
+    localStorage.removeItem(
+      CACHE_TIME_KEY
+    );
+
+
+    console.log(
+      "Job cache cleared."
+    );
+
+  } catch (error) {
+
+    console.warn(
+      "Cache clear error:",
+      error
+    );
+
+  }
+
+}
+
+
+// =====================================================
+// NORMALIZE JOB DATA
+// =====================================================
+
+function normalizeJobs(
+  jobs
+) {
 
   const unique =
     new Map();
 
 
   jobs.forEach(
-    (job, index) => {
+    (
+      job,
+      index
+    ) => {
 
-      if (!job) return;
+      if (!job) {
+
+        return;
+
+      }
 
 
       const normalized = {
@@ -284,6 +834,13 @@ function normalizeJobs(jobs) {
             ""
           ),
 
+        facebookPostId:
+          cleanValue(
+            job.facebookPostId ||
+            job["Facebook Post ID"] ||
+            ""
+          ),
+
         postDate:
           cleanValue(
             job.postDate ||
@@ -301,19 +858,59 @@ function normalizeJobs(jobs) {
       };
 
 
-      // Duplicate protection
-      const duplicateKey =
-        [
-          normalized.id,
-          normalized.jobTitle,
-          normalized.company,
-          normalized.deadline
-        ]
-          .join("|")
-          .toLowerCase();
+      /*
+         Better duplicate detection.
+
+         First priority:
+         Facebook Post ID
+
+         Second:
+         ID
+
+         Third:
+         Job title + company + deadline
+      */
+
+      let duplicateKey;
 
 
-      if (!unique.has(duplicateKey)) {
+      if (
+        normalized.facebookPostId
+      ) {
+
+        duplicateKey =
+          "FB|" +
+          normalized.facebookPostId
+            .toLowerCase();
+
+      } else if (
+        normalized.id
+      ) {
+
+        duplicateKey =
+          "ID|" +
+          normalized.id
+            .toLowerCase();
+
+      } else {
+
+        duplicateKey =
+          [
+            normalized.jobTitle,
+            normalized.company,
+            normalized.deadline
+          ]
+            .join("|")
+            .toLowerCase();
+
+      }
+
+
+      if (
+        !unique.has(
+          duplicateKey
+        )
+      ) {
 
         unique.set(
           duplicateKey,
@@ -333,11 +930,13 @@ function normalizeJobs(jobs) {
 }
 
 
-// ===============================
+// =====================================================
 // CLEAN VALUES
-// ===============================
+// =====================================================
 
-function cleanValue(value) {
+function cleanValue(
+  value
+) {
 
   if (
     value === null ||
@@ -349,36 +948,64 @@ function cleanValue(value) {
   }
 
 
-  return String(value).trim();
+  return String(
+    value
+  ).trim();
 
 }
 
 
-// ===============================
+// =====================================================
 // RENDER JOBS
-// ===============================
+// =====================================================
 
-function renderJobs(jobs) {
+function renderJobs(
+  jobs
+) {
 
-  jobsContainer.innerHTML = "";
-
-
-  visibleJobCount.textContent =
-    jobs.length;
-
-
-  if (!jobs.length) {
-
-    noJobs.style.display =
-      "block";
+  if (!jobsContainer) {
 
     return;
 
   }
 
 
-  noJobs.style.display =
-    "none";
+  jobsContainer.innerHTML =
+    "";
+
+
+  if (
+    visibleJobCount
+  ) {
+
+    visibleJobCount.textContent =
+      jobs.length;
+
+  }
+
+
+  if (
+    !jobs.length
+  ) {
+
+    if (noJobs) {
+
+      noJobs.style.display =
+        "block";
+
+    }
+
+    return;
+
+  }
+
+
+  if (noJobs) {
+
+    noJobs.style.display =
+      "none";
+
+  }
 
 
   const fragment =
@@ -389,9 +1016,14 @@ function renderJobs(jobs) {
     job => {
 
       const card =
-        createJobCard(job);
+        createJobCard(
+          job
+        );
 
-      fragment.appendChild(card);
+
+      fragment.appendChild(
+        card
+      );
 
     }
   );
@@ -404,14 +1036,18 @@ function renderJobs(jobs) {
 }
 
 
-// ===============================
+// =====================================================
 // CREATE JOB CARD
-// ===============================
+// =====================================================
 
-function createJobCard(job) {
+function createJobCard(
+  job
+) {
 
   const card =
-    document.createElement("article");
+    document.createElement(
+      "article"
+    );
 
 
   card.className =
@@ -420,7 +1056,9 @@ function createJobCard(job) {
 
   const image =
     job.imageUrl
-      ? escapeAttribute(job.imageUrl)
+      ? escapeAttribute(
+          job.imageUrl
+        )
       : "";
 
 
@@ -430,7 +1068,9 @@ function createJobCard(job) {
         <img
           class="job-image"
           src="${image}"
-          alt="${escapeHTML(job.jobTitle)}"
+          alt="${escapeHTML(
+            job.jobTitle
+          )}"
           loading="lazy"
           onerror="this.style.display='none';"
         >
@@ -451,8 +1091,12 @@ function createJobCard(job) {
 
 
   const applyURL =
-    isValidURL(job.applyLink)
-      ? escapeAttribute(job.applyLink)
+    isValidURL(
+      job.applyLink
+    )
+      ? escapeAttribute(
+          job.applyLink
+        )
       : "#";
 
 
@@ -463,32 +1107,50 @@ function createJobCard(job) {
     <div class="job-content">
 
       <h3 class="job-title">
-        ${escapeHTML(job.jobTitle)}
+        ${escapeHTML(
+          job.jobTitle
+        )}
       </h3>
 
       <div class="job-company">
-        🏢 ${escapeHTML(job.company)}
+        🏢 ${escapeHTML(
+          job.company
+        )}
       </div>
 
       <div class="job-category">
-        ${escapeHTML(job.category)}
+        ${escapeHTML(
+          job.category
+        )}
       </div>
 
       <div class="job-meta">
 
         <div class="job-meta-item">
+
           <span>📍</span>
+
           <span>
-            ${escapeHTML(job.location || "Not specified")}
+            ${escapeHTML(
+              job.location ||
+              "Not specified"
+            )}
           </span>
+
         </div>
 
         <div class="job-meta-item">
+
           <span>📅</span>
+
           <span>
             Deadline:
-            ${escapeHTML(job.deadline || "Not specified")}
+            ${escapeHTML(
+              job.deadline ||
+              "Not specified"
+            )}
           </span>
+
         </div>
 
       </div>
@@ -500,7 +1162,8 @@ function createJobCard(job) {
           <span class="active-dot"></span>
 
           ${escapeHTML(
-            job.status || "Active"
+            job.status ||
+            "Active"
           )}
 
         </span>
@@ -520,7 +1183,10 @@ function createJobCard(job) {
             : `
               <span
                 class="apply-btn"
-                style="opacity:.5;cursor:not-allowed;"
+                style="
+                  opacity:.5;
+                  cursor:not-allowed;
+                "
               >
                 Apply Unavailable
               </span>
@@ -539,71 +1205,123 @@ function createJobCard(job) {
 }
 
 
-// ===============================
+// =====================================================
 // UPDATE STATISTICS
-// ===============================
+// =====================================================
 
 function updateStatistics() {
 
-  totalJobs.textContent =
-    allJobs.length;
+  if (totalJobs) {
+
+    totalJobs.textContent =
+      allJobs.length;
+
+  }
 
 
   const companies =
     new Set(
+
       allJobs
-        .map(job =>
-          job.company
-            .trim()
-            .toLowerCase()
+
+        .map(
+          job =>
+            job.company
+              .trim()
+              .toLowerCase()
         )
+
         .filter(Boolean)
+
     );
 
 
-  totalCompanies.textContent =
-    companies.size;
+  if (totalCompanies) {
+
+    totalCompanies.textContent =
+      companies.size;
+
+  }
 
 
   const categories =
     new Set(
+
       allJobs
-        .map(job =>
-          job.category
-            .trim()
-            .toLowerCase()
+
+        .map(
+          job =>
+            job.category
+              .trim()
+              .toLowerCase()
         )
+
         .filter(Boolean)
+
     );
 
 
-  totalCategories.textContent =
-    categories.size;
+  if (totalCategories) {
+
+    totalCategories.textContent =
+      categories.size;
+
+  }
 
 
-  lastUpdated.textContent =
-    new Date().toLocaleTimeString(
-      "en-BD",
-      {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit"
-      }
-    );
+  updateLastUpdated();
 
 }
 
 
-// ===============================
-// BUILD CATEGORY FILTER
-// ===============================
+// =====================================================
+// LAST UPDATED
+// =====================================================
+
+function updateLastUpdated() {
+
+  if (!lastUpdated) {
+
+    return;
+
+  }
+
+
+  lastUpdated.textContent =
+    new Date()
+      .toLocaleTimeString(
+        "en-BD",
+        {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit"
+        }
+      );
+
+}
+
+
+// =====================================================
+// BUILD FILTERS
+// =====================================================
 
 function buildFilters() {
+
+  if (
+    !categoryFilter ||
+    !locationFilter
+  ) {
+
+    return;
+
+  }
+
 
   const categories =
     uniqueSorted(
       allJobs.map(
-        job => job.category
+        job =>
+          job.category
       )
     );
 
@@ -611,27 +1329,47 @@ function buildFilters() {
   const locations =
     uniqueSorted(
       allJobs.map(
-        job => job.location
+        job =>
+          job.location
       )
     );
 
 
+  const currentCategory =
+    categoryFilter.value;
+
+
+  const currentLocation =
+    locationFilter.value;
+
+
   categoryFilter.innerHTML =
-    `<option value="">
-      All Categories
-    </option>`;
+    `
+      <option value="">
+        All Categories
+      </option>
+    `;
 
 
   categories.forEach(
     category => {
 
-      categoryFilter.insertAdjacentHTML(
-        "beforeend",
-        `
-          <option value="${escapeAttribute(category)}">
-            ${escapeHTML(category)}
-          </option>
-        `
+      const option =
+        document.createElement(
+          "option"
+        );
+
+
+      option.value =
+        category;
+
+
+      option.textContent =
+        category;
+
+
+      categoryFilter.appendChild(
+        option
       );
 
     }
@@ -639,34 +1377,80 @@ function buildFilters() {
 
 
   locationFilter.innerHTML =
-    `<option value="">
-      All Locations
-    </option>`;
+    `
+      <option value="">
+        All Locations
+      </option>
+    `;
 
 
   locations.forEach(
     location => {
 
-      locationFilter.insertAdjacentHTML(
-        "beforeend",
-        `
-          <option value="${escapeAttribute(location)}">
-            ${escapeHTML(location)}
-          </option>
-        `
+      const option =
+        document.createElement(
+          "option"
+        );
+
+
+      option.value =
+        location;
+
+
+      option.textContent =
+        location;
+
+
+      locationFilter.appendChild(
+        option
       );
 
     }
   );
 
+
+  /*
+     Restore previous selection
+  */
+
+  if (
+    categories.includes(
+      currentCategory
+    )
+  ) {
+
+    categoryFilter.value =
+      currentCategory;
+
+  }
+
+
+  if (
+    locations.includes(
+      currentLocation
+    )
+  ) {
+
+    locationFilter.value =
+      currentLocation;
+
+  }
+
 }
 
 
-// ===============================
+// =====================================================
 // CATEGORY SECTION
-// ===============================
+// =====================================================
 
 function buildCategories() {
+
+  if (!categoriesContainer) {
+
+    return;
+
+  }
+
 
   categoriesContainer.innerHTML =
     "";
@@ -685,21 +1469,40 @@ function buildCategories() {
 
 
       counts[category] =
-        (counts[category] || 0) + 1;
+        (
+          counts[category] ||
+          0
+        ) + 1;
 
     }
   );
 
 
-  Object.entries(counts)
+  Object.entries(
+    counts
+  )
+
     .sort(
-      (a, b) => b[1] - a[1]
+      (
+        a,
+        b
+      ) =>
+        b[1] -
+        a[1]
     )
+
     .forEach(
-      ([category, count]) => {
+      (
+        [
+          category,
+          count
+        ]
+      ) => {
 
         const div =
-          document.createElement("div");
+          document.createElement(
+            "div"
+          );
 
 
         div.className =
@@ -713,12 +1516,18 @@ function buildCategories() {
           </div>
 
           <div class="category-name">
-            ${escapeHTML(category)}
+            ${escapeHTML(
+              category
+            )}
           </div>
 
           <div class="category-count">
             ${count}
-            ${count === 1 ? "Job" : "Jobs"}
+            ${
+              count === 1
+                ? "Job"
+                : "Jobs"
+            }
           </div>
 
         `;
@@ -728,15 +1537,26 @@ function buildCategories() {
           "click",
           () => {
 
-            categoryFilter.value =
-              category;
+            if (
+              categoryFilter
+            ) {
+
+              categoryFilter.value =
+                category;
+
+            }
+
 
             applyFilters();
 
+
             document
-              .getElementById("jobs")
+              .getElementById(
+                "jobs"
+              )
               ?.scrollIntoView({
-                behavior: "smooth"
+                behavior:
+                  "smooth"
               });
 
           }
@@ -753,11 +1573,18 @@ function buildCategories() {
 }
 
 
-// ===============================
+// =====================================================
 // COMPANY SECTION
-// ===============================
+// =====================================================
 
 function buildCompanies() {
+
+  if (!companiesContainer) {
+
+    return;
+
+  }
+
 
   companiesContainer.innerHTML =
     "";
@@ -776,21 +1603,40 @@ function buildCompanies() {
 
 
       counts[company] =
-        (counts[company] || 0) + 1;
+        (
+          counts[company] ||
+          0
+        ) + 1;
 
     }
   );
 
 
-  Object.entries(counts)
+  Object.entries(
+    counts
+  )
+
     .sort(
-      (a, b) => b[1] - a[1]
+      (
+        a,
+        b
+      ) =>
+        b[1] -
+        a[1]
     )
+
     .forEach(
-      ([company, count]) => {
+      (
+        [
+          company,
+          count
+        ]
+      ) => {
 
         const div =
-          document.createElement("div");
+          document.createElement(
+            "div"
+          );
 
 
         div.className =
@@ -806,18 +1652,26 @@ function buildCompanies() {
         div.innerHTML = `
 
           <div class="company-logo">
-            ${escapeHTML(initial)}
+            ${escapeHTML(
+              initial
+            )}
           </div>
 
           <div>
 
             <div class="company-name">
-              ${escapeHTML(company)}
+              ${escapeHTML(
+                company
+              )}
             </div>
 
             <div class="company-jobs">
               ${count}
-              ${count === 1 ? "Job" : "Jobs"}
+              ${
+                count === 1
+                  ? "Job"
+                  : "Jobs"
+              }
             </div>
 
           </div>
@@ -835,9 +1689,9 @@ function buildCompanies() {
 }
 
 
-// ===============================
+// =====================================================
 // SEARCH
-// ===============================
+// =====================================================
 
 function performSearch() {
 
@@ -857,7 +1711,8 @@ searchInput?.addEventListener(
   event => {
 
     if (
-      event.key === "Enter"
+      event.key ===
+      "Enter"
     ) {
 
       performSearch();
@@ -868,9 +1723,9 @@ searchInput?.addEventListener(
 );
 
 
-// ===============================
-// FILTERS
-// ===============================
+// =====================================================
+// FILTER EVENTS
+// =====================================================
 
 categoryFilter?.addEventListener(
   "change",
@@ -884,24 +1739,34 @@ locationFilter?.addEventListener(
 );
 
 
+// =====================================================
+// FILTER JOBS
+// =====================================================
+
 function applyFilters() {
 
   const search =
-    searchInput.value
-      .trim()
-      .toLowerCase();
+    searchInput
+      ? searchInput.value
+          .trim()
+          .toLowerCase()
+      : "";
 
 
   const category =
-    categoryFilter.value
-      .trim()
-      .toLowerCase();
+    categoryFilter
+      ? categoryFilter.value
+          .trim()
+          .toLowerCase()
+      : "";
 
 
   const location =
-    locationFilter.value
-      .trim()
-      .toLowerCase();
+    locationFilter
+      ? locationFilter.value
+          .trim()
+          .toLowerCase()
+      : "";
 
 
   filteredJobs =
@@ -910,13 +1775,21 @@ function applyFilters() {
 
         const searchableText =
           [
+
             job.jobTitle,
+
             job.company,
+
             job.category,
+
             job.location,
+
             job.description
+
           ]
+
             .join(" ")
+
             .toLowerCase();
 
 
@@ -958,22 +1831,43 @@ function applyFilters() {
 }
 
 
-// ===============================
+// =====================================================
 // CLEAR FILTERS
-// ===============================
+// =====================================================
 
 clearFilters?.addEventListener(
   "click",
   () => {
 
-    searchInput.value = "";
+    if (searchInput) {
 
-    categoryFilter.value = "";
+      searchInput.value =
+        "";
 
-    locationFilter.value = "";
+    }
+
+
+    if (categoryFilter) {
+
+      categoryFilter.value =
+        "";
+
+    }
+
+
+    if (locationFilter) {
+
+      locationFilter.value =
+        "";
+
+    }
+
 
     filteredJobs =
-      [...allJobs];
+      [
+        ...allJobs
+      ];
+
 
     renderJobs(
       filteredJobs
@@ -983,94 +1877,218 @@ clearFilters?.addEventListener(
 );
 
 
-// ===============================
-// RETRY
-// ===============================
+// =====================================================
+// RETRY BUTTON
+// =====================================================
 
 retryBtn?.addEventListener(
   "click",
   () => {
 
-    loadJobs();
+    /*
+       Clear error first
+    */
+
+    if (
+      errorMessage
+    ) {
+
+      errorMessage.style.display =
+        "none";
+
+    }
+
+
+    /*
+       If cached jobs exist,
+       keep them visible while
+       retrying.
+    */
+
+    if (
+      allJobs &&
+      allJobs.length
+    ) {
+
+      hideLoading();
+
+      refreshJobsInBackground();
+
+    } else {
+
+      loadJobsFromAPI(
+        true
+      );
+
+    }
 
   }
 );
 
 
-// ===============================
+// =====================================================
 // LOADING
-// ===============================
+// =====================================================
 
 function showLoading() {
 
-  loading.style.display =
-    "block";
+  /*
+     IMPORTANT:
 
-  errorMessage.style.display =
-    "none";
+     Never clear existing
+     jobs while loading.
 
-  noJobs.style.display =
-    "none";
+     This prevents flickering.
+    */
 
-  jobsContainer.innerHTML =
-    "";
+  if (
+    allJobs &&
+    allJobs.length
+  ) {
+
+    hideLoading();
+
+    return;
+
+  }
+
+
+  if (loading) {
+
+    loading.style.display =
+      "block";
+
+  }
+
+
+  if (errorMessage) {
+
+    errorMessage.style.display =
+      "none";
+
+  }
+
+
+  if (noJobs) {
+
+    noJobs.style.display =
+      "none";
+
+  }
 
 }
 
+
+// =====================================================
+// HIDE LOADING
+// =====================================================
 
 function hideLoading() {
 
-  loading.style.display =
-    "none";
+  if (loading) {
 
-  errorMessage.style.display =
-    "none";
+    loading.style.display =
+      "none";
 
-}
+  }
 
 
-function showError(message) {
+  if (errorMessage) {
 
-  loading.style.display =
-    "none";
+    errorMessage.style.display =
+      "none";
 
-  errorMessage.style.display =
-    "block";
-
-  noJobs.style.display =
-    "none";
-
-  jobsContainer.innerHTML =
-    "";
-
-  errorText.textContent =
-    message;
+  }
 
 }
 
 
-// ===============================
-// UTILITY FUNCTIONS
-// ===============================
+// =====================================================
+// SHOW ERROR
+// =====================================================
 
-function uniqueSorted(values) {
+function showError(
+  message
+) {
+
+  if (loading) {
+
+    loading.style.display =
+      "none";
+
+  }
+
+
+  if (errorMessage) {
+
+    errorMessage.style.display =
+      "block";
+
+  }
+
+
+  if (noJobs) {
+
+    noJobs.style.display =
+      "none";
+
+  }
+
+
+  /*
+     IMPORTANT:
+
+     Do NOT remove cached jobs.
+  */
+
+  if (
+    errorText
+  ) {
+
+    errorText.textContent =
+      message;
+
+  }
+
+}
+
+
+// =====================================================
+// UNIQUE SORTED
+// =====================================================
+
+function uniqueSorted(
+  values
+) {
 
   return [
+
     ...new Set(
+
       values
+
         .map(
           value =>
-            String(value || "").trim()
+            String(
+              value || ""
+            ).trim()
         )
+
         .filter(Boolean)
+
     )
+
   ].sort(
-    (a, b) =>
+    (
+      a,
+      b
+    ) =>
       a.localeCompare(
         b,
         undefined,
         {
-          sensitivity: "base"
+          sensitivity:
+            "base"
         }
       )
   );
@@ -1078,18 +2096,37 @@ function uniqueSorted(values) {
 }
 
 
-function isValidURL(url) {
+// =====================================================
+// VALID URL
+// =====================================================
 
-  if (!url) return false;
+function isValidURL(
+  url
+) {
+
+  if (!url) {
+
+    return false;
+
+  }
+
 
   try {
 
     const parsed =
-      new URL(url);
+      new URL(
+        url
+      );
+
 
     return (
-      parsed.protocol === "http:" ||
-      parsed.protocol === "https:"
+
+      parsed.protocol ===
+        "http:" ||
+
+      parsed.protocol ===
+        "https:"
+
     );
 
   } catch {
@@ -1101,25 +2138,38 @@ function isValidURL(url) {
 }
 
 
-function escapeHTML(value) {
+// =====================================================
+// ESCAPE HTML
+// =====================================================
 
-  return String(value || "")
+function escapeHTML(
+  value
+) {
+
+  return String(
+    value || ""
+  )
+
     .replace(
       /&/g,
       "&amp;"
     )
+
     .replace(
       /</g,
       "&lt;"
     )
+
     .replace(
       />/g,
       "&gt;"
     )
+
     .replace(
       /"/g,
       "&quot;"
     )
+
     .replace(
       /'/g,
       "&#039;"
@@ -1128,24 +2178,100 @@ function escapeHTML(value) {
 }
 
 
-function escapeAttribute(value) {
+// =====================================================
+// ESCAPE ATTRIBUTE
+// =====================================================
 
-  return escapeHTML(value);
+function escapeAttribute(
+  value
+) {
+
+  return escapeHTML(
+    value
+  );
 
 }
 
 
-// ===============================
+// =====================================================
 // AUTO REFRESH
-// ===============================
+// =====================================================
 
-// Refresh job data every 10 minutes.
+/*
+   Every 10 minutes:
+
+   API will be checked
+   silently in background.
+
+   Visitor will NOT see
+   loading screen.
+*/
 
 setInterval(
   () => {
 
-    loadJobs();
+    refreshJobsInBackground();
 
   },
   10 * 60 * 1000
+);
+
+
+// =====================================================
+// PAGE VISIBILITY REFRESH
+// =====================================================
+
+/*
+   If visitor leaves the tab
+   and comes back after some time,
+   silently check for new jobs.
+*/
+
+document.addEventListener(
+  "visibilitychange",
+  () => {
+
+    if (
+      document.visibilityState ===
+      "visible"
+    ) {
+
+      refreshJobsInBackground();
+
+    }
+
+  }
+);
+
+
+// =====================================================
+// ONLINE EVENT
+// =====================================================
+
+/*
+   If internet reconnects,
+   refresh jobs automatically.
+*/
+
+window.addEventListener(
+  "online",
+  () => {
+
+    console.log(
+      "Internet connection restored."
+    );
+
+
+    refreshJobsInBackground();
+
+  }
+);
+
+
+// =====================================================
+// DEBUG INFORMATION
+// =====================================================
+
+console.log(
+  "Job Circuler BD optimized script loaded."
 );
