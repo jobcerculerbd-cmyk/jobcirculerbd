@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta name="description"
+        content="Job Circuler BD — Latest Government & Private Job Circulars, Career Opportunities and Recruitment Updates in Bangladesh.">
+
+  <meta name="keywords"
+        content="job circular Bangladesh, government job, private job, চাকরির খবর, নিয়োগ বিজ্ঞপ্তি">
+
+  <meta name="author" content="Job Circuler BD">
+
+  <title>Job Circuler BD — Latest Job Circulars</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- =========================
+       HEADER
+  ========================== -->
+  <header class="site-header">
+
+    <div class="container header-inner">
+
+      <a href="#" class="logo">
+        <span class="logo-icon">💼</span>
+        <span>Job Circuler <strong>BD</strong></span>
+      </a>
+
+      <nav class="main-nav">
+
+        <a href="#home">Home</a>
+
+        <a href="#jobs">Jobs</a>
+
+        <a href="#categories">Categories</a>
+
+        <a href="#companies">Companies</a>
+
+      </nav>
+
+      <button class="mobile-menu-btn"
+              id="mobileMenuBtn"
+              aria-label="Open Menu">
+        ☰
+      </button>
+
+    </div>
+
+  </header>
+
+
+  <!-- =========================
+       HERO SECTION
+  ========================== -->
+  <main id="home">
+
+    <section class="hero">
+
+      <div class="container hero-content">
+
+        <div class="hero-text">
+
+          <span class="hero-badge">
+            🇧🇩 Bangladesh Job Portal
+          </span>
+
+          <h1>
+            Find Your
+            <span>Dream Job</span>
+          </h1>
+
+          <p>
+            Latest Government & Private Job Circulars,
+            Career Opportunities and Recruitment Updates
+            in Bangladesh.
+          </p>
+
+        </div>
+
+
+        <!-- SEARCH -->
+        <div class="search-box">
+
+          <div class="search-input-wrapper">
+
+            <span class="search-icon">🔎</span>
+
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Search job title, company..."
+              autocomplete="off"
+            >
+
+          </div>
+
+          <button id="searchBtn" class="search-btn">
+            Search Jobs
+          </button>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         STATISTICS
+    ========================== -->
+    <section class="stats-section">
+
+      <div class="container stats-grid">
+
+        <div class="stat-card">
+
+          <div class="stat-icon">💼</div>
+
+          <div>
+            <span class="stat-number" id="totalJobs">
+              0
+            </span>
+
+            <span class="stat-label">
+              Active Jobs
+            </span>
+          </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+          <div class="stat-icon">🏢</div>
+
+          <div>
+            <span class="stat-number" id="totalCompanies">
+              0
+            </span>
+
+            <span class="stat-label">
+              Companies
+            </span>
+          </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+          <div class="stat-icon">📂</div>
+
+          <div>
+            <span class="stat-number" id="totalCategories">
+              0
+            </span>
+
+            <span class="stat-label">
+              Categories
+            </span>
+          </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+          <div class="stat-icon">🕐</div>
+
+          <div>
+            <span class="stat-number" id="lastUpdated">
+              --
+            </span>
+
+            <span class="stat-label">
+              Last Updated
+            </span>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         JOB SECTION
+    ========================== -->
+    <section class="jobs-section" id="jobs">
+
+      <div class="container">
+
+        <div class="section-header">
+
+          <div>
+
+            <span class="section-label">
+              CAREER OPPORTUNITIES
+            </span>
+
+            <h2>
+              Latest Job Circulars
+            </h2>
+
+          </div>
+
+          <div class="job-count">
+            <span id="visibleJobCount">0</span>
+            Jobs Found
+          </div>
+
+        </div>
+
+
+        <!-- FILTERS -->
+        <div class="filters">
+
+          <select id="categoryFilter">
+
+            <option value="">
+              All Categories
+            </option>
+
+          </select>
+
+
+          <select id="locationFilter">
+
+            <option value="">
+              All Locations
+            </option>
+
+          </select>
+
+
+          <button
+            id="clearFilters"
+            class="clear-filter-btn">
+            Clear Filters
+          </button>
+
+        </div>
+
+
+        <!-- LOADING -->
+        <div id="loading" class="loading">
+
+          <div class="loader"></div>
+
+          <p>
+            Loading latest jobs...
+          </p>
+
+        </div>
+
+
+        <!-- ERROR -->
+        <div id="errorMessage"
+             class="error-message"
+             style="display:none;">
+
+          <div class="error-icon">
+            ⚠️
+          </div>
+
+          <h3>
+            Unable to load jobs
+          </h3>
+
+          <p id="errorText">
+            Please try again later.
+          </p>
+
+          <button id="retryBtn">
+            Try Again
+          </button>
+
+        </div>
+
+
+        <!-- JOB GRID -->
+        <div
+          id="jobsContainer"
+          class="jobs-grid">
+        </div>
+
+
+        <!-- NO JOB -->
+        <div
+          id="noJobs"
+          class="no-jobs"
+          style="display:none;">
+
+          <div class="no-job-icon">
+            🔍
+          </div>
+
+          <h3>
+            No Jobs Found
+          </h3>
+
+          <p>
+            Try changing your search or filters.
+          </p>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         CATEGORIES
+    ========================== -->
+    <section
+      class="categories-section"
+      id="categories">
+
+      <div class="container">
+
+        <div class="section-header">
+
+          <div>
+
+            <span class="section-label">
+              EXPLORE
+            </span>
+
+            <h2>
+              Popular Categories
+            </h2>
+
+          </div>
+
+        </div>
+
+
+        <div
+          id="categoriesContainer"
+          class="categories-grid">
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         COMPANIES
+    ========================== -->
+    <section
+      class="companies-section"
+      id="companies">
+
+      <div class="container">
+
+        <div class="section-header">
+
+          <div>
+
+            <span class="section-label">
+              TOP EMPLOYERS
+            </span>
+
+            <h2>
+              Companies Hiring
+            </h2>
+
+          </div>
+
+        </div>
+
+
+        <div
+          id="companiesContainer"
+          class="companies-grid">
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- =========================
+       FOOTER
+  ========================== -->
+  <footer class="site-footer">
+
+    <div class="container footer-content">
+
+      <div class="footer-brand">
+
+        <div class="logo">
+          <span class="logo-icon">💼</span>
+          <span>
+            Job Circuler <strong>BD</strong>
+          </span>
+        </div>
+
+        <p>
+          Your trusted source for the latest
+          job circulars and career opportunities
+          in Bangladesh.
+        </p>
+
+      </div>
+
+
+      <div class="footer-links">
+
+        <h3>
+          Quick Links
+        </h3>
+
+        <a href="#home">
+          Home
+        </a>
+
+        <a href="#jobs">
+          Latest Jobs
+        </a>
+
+        <a href="#categories">
+          Categories
+        </a>
+
+        <a href="#companies">
+          Companies
+        </a>
+
+      </div>
+
+
+      <div class="footer-links">
+
+        <h3>
+          Job Circuler BD
+        </h3>
+
+        <a href="#">
+          About Us
+        </a>
+
+        <a href="#">
+          Contact
+        </a>
+
+        <a href="#">
+          Privacy Policy
+        </a>
+
+        <a href="#">
+          Disclaimer
+        </a>
+
+      </div>
+
+    </div>
+
+
+    <div class="footer-bottom">
+
+      <div class="container">
+
+        <p>
+          © <span id="currentYear"></span>
+          Job Circuler BD. All Rights Reserved.
+        </p>
+
+      </div>
+
+    </div>
+
+  </footer>
+
+
+  <!-- JavaScript -->
+  <script src="script.js"></script>
+
+</body>
+</html>
