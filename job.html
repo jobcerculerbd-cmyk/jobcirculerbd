@@ -1,0 +1,127 @@
+
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta name="description" content="চাকরির বিস্তারিত, যোগ্যতা, আবেদনের শেষ তারিখ ও আবেদন পদ্ধতি।">
+
+  <title>Job Details | Job Circular BD</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="job.css">
+
+  <script src="job.js" defer></script>
+</head>
+<body class="job-details-page">
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">💼</span>
+        <span>Job Circular <strong>BD</strong></span>
+      </a>
+      <a href="index.html#jobs" class="apply-btn">← সব চাকরি</a>
+    </div>
+  </header>
+
+  <main class="container details-container">
+    <div id="detailsLoading" class="loading">
+      <div class="loader"></div>
+      <p>চাকরির বিস্তারিত লোড হচ্ছে...</p>
+    </div>
+
+    <section id="detailsError" class="error-message" hidden>
+      <h2>চাকরির তথ্য পাওয়া যায়নি</h2>
+      <p id="detailsErrorText">
+        অনুগ্রহ করে আবার চেষ্টা করুন।
+      </p>
+      <a href="index.html#jobs" class="apply-btn">
+        সব চাকরি দেখুন
+      </a>
+    </section>
+
+    <article id="jobDetails" hidden>
+      <nav class="details-breadcrumb">
+        <a href="index.html">হোম</a> /
+        <a href="index.html#jobs">চাকরির সার্কুলার</a> /
+        <span>চাকরির বিস্তারিত</span>
+      </nav>
+
+      <section class="details-hero">
+        <div class="details-poster-wrap">
+          <img id="detailImage" alt="চাকরির বিজ্ঞপ্তি">
+          <div id="detailImageFallback" hidden>💼</div>
+        </div>
+
+        <div class="details-heading">
+          <span id="detailCategory" class="job-category"></span>
+          <h1 id="detailTitle"></h1>
+          <p id="detailCompany" class="job-company"></p>
+
+          <div class="details-summary">
+            <div>
+              <span>📍 অবস্থান</span>
+              <strong id="detailLocation"></strong>
+            </div>
+            <div>
+              <span>📅 আবেদনের শেষ তারিখ</span>
+              <strong id="detailDeadline"></strong>
+            </div>
+          </div>
+
+          <a id="detailApply" class="details-apply" target="_blank"
+             rel="noopener noreferrer">
+            Apply Now →
+          </a>
+
+          <p id="applyUnavailable" hidden>
+            এই চাকরির আবেদন লিংক বর্তমানে পাওয়া যায়নি।
+          </p>
+        </div>
+      </section>
+
+      <section class="details-body">
+        <div class="details-main">
+          <h2>চাকরির বিবরণ</h2>
+          <div id="detailDescription" class="detail-description"></div>
+        </div>
+
+        <aside class="details-sidebar">
+          <h2>চাকরির সংক্ষিপ্ত তথ্য</h2>
+          <dl>
+            <dt>পদের নাম</dt>
+            <dd id="sideTitle"></dd>
+
+            <dt>প্রতিষ্ঠান</dt>
+            <dd id="sideCompany"></dd>
+
+            <dt>ক্যাটাগরি</dt>
+            <dd id="sideCategory"></dd>
+
+            <dt>কর্মস্থল</dt>
+            <dd id="sideLocation"></dd>
+
+            <dt>আবেদনের শেষ তারিখ</dt>
+            <dd id="sideDeadline"></dd>
+          </dl>
+
+          <a id="sideApply" class="details-apply" target="_blank"
+             rel="noopener noreferrer">
+            আবেদন করুন
+          </a>
+        </aside>
+      </section>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-bottom">
+      <div class="container">
+        <p>© <span id="detailYear"></span> Job Circular BD. All Rights Reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
