@@ -1048,7 +1048,33 @@ function createJobCard(
     document.createElement(
       "article"
     );
+card.classList.add("job-card-clickable");
+card.tabIndex = 0;
+card.setAttribute("role", "link");
+card.setAttribute(
+  "aria-label",
+  `${job.jobTitle} - বিস্তারিত দেখুন`
+);
 
+function openJobDetails() {
+  window.location.href =
+    "job.html?id=" + encodeURIComponent(job.id);
+}
+
+card.addEventListener("click", event => {
+  if (event.target.closest("a, button")) return;
+  openJobDetails();
+});
+
+card.addEventListener("keydown", event => {
+  if (
+    (event.key === "Enter" || event.key === " ") &&
+    !event.target.closest("a, button")
+  ) {
+    event.preventDefault();
+    openJobDetails();
+  }
+});
 
   card.className =
     "job-card";
