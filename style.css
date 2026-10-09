@@ -570,14 +570,24 @@ select {
   box-shadow: var(--shadow-lg);
 }
 
+
 .job-image {
+  display: block;
   width: 100%;
+  height: 260px;
+  object-fit: contain;
+  object-position: center;
+  background: #ffffff;
+  padding: 8px;
+}
 
-  height: 190px;
+.job-card-clickable {
+  cursor: pointer;
+}
 
-  object-fit: cover;
-
-  background: #f1f5f9;
+.job-card-clickable:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
 }
 
 .job-content {
